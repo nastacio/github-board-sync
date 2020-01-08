@@ -138,7 +138,7 @@ app.get('/', (req, res) => {
     .allSettled(promised_responses)
     .then(function(values) {
       console.log("existing:" + existing_titles.length);
-      existing_titles.forEach(title => console.log("existing:" + title));
+      existing_titles.sort().forEach(title => console.log("existing:" + title));
       console.log("source_issues:" + source_issues.length);
       console.log("project_url:" + project_url);
 
