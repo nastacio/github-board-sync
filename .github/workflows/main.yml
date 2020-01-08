@@ -1,0 +1,27 @@
+name: Appsody-Actions CI
+
+on:
+  push:
+    branches:
+    - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: build-push
+      env:
+        DOCKER_HUB: ${{ secrets.DOCKER_HUB }}
+        DOCKER_HUB_KEY: ${{ secrets.DOCKER_HUB_KEY }}
+      run: |
+        echo 'Docker Login...'
+        docker login -u $DOCKER_HUB -p $DOCKER_HUB_KEY
+        echo 'Installing Appsody...'
+        appsody_version=0.5.3
+        appsody_binary=appsody_${appsody_version}_amd64.deb
+        wget https://github.com/appsody/appsody/releases/download/${appsody_version}/${appsody_binary}
+        sudo apt install -f ./${appsody_binary}
+        echo 'Running Appsody build and pushing to docker registry...'
+        appsody build --push-url dnastacio
