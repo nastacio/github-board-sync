@@ -15,15 +15,20 @@ The configuration file is a properties file with keys and values, matching the t
 |---|---|
 | `target_repo` | [GitHub v3 API](https://developer.github.com/v3/) for the target repository where the reconciliation will take place, e.g. https://api.github.ibm.com/repos/dnastaci/oncsuite-proto. |
 | `github_pat` | [GitHub Personal Access Token](https://github.com/settings/tokens) for the target repository. |
-| `source_repos`| A JSON array of all repositories that should be queried for issues, following the structure 
-`[
+| `source_repos`| A JSON array of all repositories that should be queried for issues, see below |
+
+
+## source_repos structure
+
+```json
+[
       { 
         "prefix": "Some short string that will be used in the title of the target issue",
         "urls": [ "<github_v3_api for the source issues>", "<github_v3_api for the source issues>" ] 
       }
   ]
-  ` |
-|---|---|
+```
+
 
 ## Example:
 
