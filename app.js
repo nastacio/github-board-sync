@@ -14,9 +14,10 @@ const GITHUB_ACCEPT_PREVIEW_HEADER = 'application/vnd.github.inertia-preview+jso
 // Added to issues created and managed by this tool
 const GITHUB_REMOTE_LABEL = "remote";
 
-var githubPat  = process.env.github_pat;
-var targetRepo = process.env.target_repo;
-var sourceRepos = JSON.parse(process.env.source_repos);
+var githubPat              = process.env.github_pat;
+var sourcesGlobalGithubPat = ("sources_global_github_pat" in process.env) ? process.env.sources_global_github_pat : githubPat;
+var targetRepo             = process.env.target_repo;
+var sourceRepos            = JSON.parse(process.env.source_repos);
 
 /**
  * 
@@ -77,12 +78,11 @@ async function getExistingIssues(targetRepoUrl, existingIssues) {
         }
       }
 
-      console.log("Processed page: " + targetRepoUrl);
       linkHeader = response.headers.link;
       if (linkHeader) {
         var parsed = parse(linkHeader);
         if (parsed.next) {
-            console.log("New page found: " + parsed.next.url);
+            console.log("Next existing issues page: " + parsed.next.url);
             return getExistingIssues(parsed.next.url, existingIssues);
         }
       }
@@ -101,43 +101,55 @@ async function getExistingIssues(targetRepoUrl, existingIssues) {
  * @param {*} sourceIssues 
  * @param {*} promisedResponses 
  */
-function getSourceIssues(sourceIssuesUrl, sourceIssues, promisedResponses) {
+async function getSourceIssues(sourceIssuesUrl, sourceIssues, promisedResponses) {
   sourceRepos.forEach(sourceRepo => {
     sourceRepo.urls.forEach(sourceUrl => {
-      var sourceIssuesForUrl = 0;
-      var getOptions = {
-        url: sourceUrl,
-        json: true,
-        headers: {
-          'User-Agent': GITHUB_USER_AGENT,
-          'Accept': GITHUB_ACCEPT_HEADER,
-          'Authorization': 'token ' + githubPat
-        }
-      };
-      var getSourceIssues = rp
-        .get(getOptions)
-        .promise()
-        .then(function (body) {
-          var keys = Object.keys(body);
-          for (var i = 0, length = keys.length; i < length; i++) {
-            issue = body[keys[i]];
-            if (!sourceIssuesUrl.includes(issue.url)) {
-              sourceIssuesUrl.push(issue.url);
-              sourceIssues.push({
-                prefix: sourceRepo.prefix,
-                issue: issue
-              });
-              sourceIssuesForUrl++;
-            }
-          }
-          console.log("Fetched " + sourceIssuesForUrl + " issues from " + getOptions.url);
-        })
-        .catch(function (err) {
-          console.log("Error in getsource:" + err);
-        });
-      promisedResponses.push(getSourceIssues);
+      var effectiveGithubPat = sourceRepo.github_pat ? sourceRepo.github_pat : sourcesGlobalGithubPat;
+      getSourceIssuesInternal(sourceUrl, effectiveGithubPat, sourceRepo);
     });
   });
+
+  function getSourceIssuesInternal(sourceUrl, effectiveGithubPat, sourceRepo) {
+    var getOptions = {
+      url: sourceUrl,
+      resolveWithFullResponse: true,
+      json: true,
+      headers: {
+        'User-Agent': GITHUB_USER_AGENT,
+        'Accept': GITHUB_ACCEPT_HEADER,
+        'Authorization': 'token ' + effectiveGithubPat
+      }
+    };
+    var getSourceIssuesPromise = rp
+      .get(getOptions)
+      .promise()
+      .then(function (response) {
+        var body = response.body;
+        var keys = Object.keys(body);
+        for (var i = 0, length = keys.length; i < length; i++) {
+          issue = body[keys[i]];
+          if (!sourceIssuesUrl.includes(issue.url)) {
+            sourceIssuesUrl.push(issue.url);
+            sourceIssues.push({
+              prefix: sourceRepo.prefix,
+              issue: issue
+            });
+          }
+        }
+        linkHeader = response.headers.link;
+        if (linkHeader) {
+          var parsed = parse(linkHeader);
+          if (parsed.next) {
+            console.log("Next source issues page: " + parsed.next.url);
+            return getSourceIssuesInternal(parsed.next.url, effectiveGithubPat, effectiveGithubPat);
+          }
+        }
+      })
+      .catch(function (err) {
+        console.log("Error in getsource:" + err);
+      });
+    promisedResponses.push(getSourceIssuesPromise);
+  }
 }
 
 

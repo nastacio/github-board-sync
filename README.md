@@ -15,15 +15,17 @@ The configuration file is a properties file with keys and values, matching the t
 |---|---|
 | `target_repo` | [GitHub v3 API](https://developer.github.com/v3/) for the target repository where the reconciliation will take place, e.g. https://api.github.ibm.com/repos/dnastaci/oncsuite-proto. |
 | `github_pat` | [GitHub Personal Access Token](https://github.com/settings/tokens) for the target repository. |
-| `source_repos`| A JSON array of all repositories that should be queried for issues, see below |
+| `sources_global_github_pat` | Optional GitHub Personal Access Token for all source repositories. If not specified, then `github_pat` is used. It is overriden by tokens defined inside the `source_repos` array. |
+| `source_repos`| A JSON array of all repositories that should be queried for issues. As a current limitation, the JSON array must be represented in a single-line inside the file. See the sub-section in this page for the structure of the element. |
 
 
-## source_repos structure
+## Structure of the `source_repos` element
 
 ```json
 [
       { 
         "prefix": "Some short string that will be used in the title of the target issue",
+        "github_pat": "<GitHub Personal Access Token for the URLS in the "urls" element.>",
         "urls": [ "<github_v3_api for the source issues>", "<github_v3_api for the source issues>" ] 
       }
   ]
