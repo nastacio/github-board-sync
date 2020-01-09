@@ -1,6 +1,3 @@
-/*
- *
- */
 const app = require('express')();
 const request = require('request');
 const rp = require('request-promise');
@@ -20,13 +17,16 @@ var targetRepo             = process.env.target_repo;
 var sourceRepos            = JSON.parse(process.env.source_repos);
 
 /**
+ * New body for an issue in the target repo
  * 
+ * @param {*} sourceIssue 
  */
 function createNewIssueBody(sourceIssue) {
   return "Aggregated from: " + sourceIssue.url + "\n\nDescription in source issue:\n\n" + sourceIssue.body;
 }
 
 /**
+ * First part of the title for an issue in the target repo.
  * 
  * @param {*} sourceIssue 
  */
@@ -36,6 +36,7 @@ function getSourceIssuePrefix(sourceIssue) {
 
 
 /**
+ * Complete title for an issue in the target repo.
  * 
  * @param {*} sourceIssue 
  */
@@ -96,6 +97,9 @@ async function getExistingIssues(targetRepoUrl, existingIssues) {
 
 
 /**
+ * Returns the entire list of issues across all source repositories.
+ * 
+ * There are scalability limitations to the approach of reading all sources.
  * 
  * @param {*} sourceIssuesUrl 
  * @param {*} sourceIssues 
@@ -130,10 +134,11 @@ async function getSourceIssues(sourceIssuesUrl, sourceIssues, promisedResponses)
           issue = body[keys[i]];
           if (!sourceIssuesUrl.includes(issue.url)) {
             sourceIssuesUrl.push(issue.url);
-            sourceIssues.push({
+            var sourceIssue = {
               prefix: sourceRepo.prefix,
               issue: issue
-            });
+            }
+            sourceIssues.push(sourceIssue);
           }
         }
         linkHeader = response.headers.link;
@@ -154,6 +159,8 @@ async function getSourceIssues(sourceIssuesUrl, sourceIssues, promisedResponses)
 
 
 /**
+ * Compares the list of source issues with existing issues and creates the 
+ * missing ones in the target repository.
  * 
  * @param {*} sourceIssues 
  * @param {*} existingIssues 
@@ -194,6 +201,8 @@ function createMissingIssues(sourceIssues, existingIssues) {
 
 
 /**
+ * Compares the list of source issues with existing issues and patches the 
+ * existing ones if the corresponding source issue has changed.
  * 
  * @param {*} existingIssues 
  * @param {*} sourceIssues 
@@ -293,7 +302,7 @@ function createLabelIfNeeded() {
 
 
 /**
- * 
+ * Main REST method.
  */
 app.get('/', (req, res) => {
 
