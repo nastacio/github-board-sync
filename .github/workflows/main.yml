@@ -18,11 +18,11 @@ jobs:
         DOCKER_HUB_REPO: dnastacio
       run: |
         echo 'Docker Login...'
-        docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_KEY
+        docker login -u ${DOCKER_HUB_USER} -p ${DOCKER_HUB_KEY}
         echo 'Installing Appsody...'
-        appsody_version=0.5.3
+        appsody_version=0.5.4
         appsody_binary=appsody_${appsody_version}_amd64.deb
         wget https://github.com/appsody/appsody/releases/download/${appsody_version}/${appsody_binary}
         sudo apt install -f ./${appsody_binary}
         echo 'Running Appsody build and pushing to docker registry...'
-        appsody build --push-url DOCKER_HUB_REPO/github-board-sync:latest
+        appsody build --push-url ${DOCKER_HUB_REPO}
