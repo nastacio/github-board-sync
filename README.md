@@ -42,7 +42,7 @@ github_pat=...
 source_repos=[ { "prefix": "appsody stack", "urls": ["https://api.github.com/repos/appsody/stacks/issues?labels=enhancement"] }, { "prefix": "my codewind", "urls": ["https://api.github.com/repos/eclipse/codewind/issues?labels=tech-topic"] }]
 ```
 
-# Running the app
+# Running the app with Appsody
 
 1. Install [Appsody](https://appsody.dev)
 1. Create a configuration file following the example above, replacing the values with the values matching your GitHub accounts.
@@ -57,3 +57,20 @@ source_repos=[ { "prefix": "appsody stack", "urls": ["https://api.github.com/rep
 
 This project shows the results of running the reconciliation:
 https://github.com/nastacio/github-board-sync-test/issues
+
+
+# Running the app with OpenWhisk
+
+```
+rm action.zip
+zip action.zip github-sync.js
+cd openwhisk
+rm -rf node_modules
+npm install
+zip -rq ../action.zip *
+cd -
+
+config_file=~/etc/github-sync-test.env
+ibmcloud fn action update github-sync-test action.zip --kind nodejs:default --param-file ${config_file}
+ibmcloud fn action invoke github-sync-test --param-file ${config_file} -r
+```

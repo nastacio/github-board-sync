@@ -1,0 +1,10 @@
+{
+  "name": "github-sync",
+  "version": "1.0.0",
+  "main": "action.js",
+  "dependencies": {
+    "request": "^2.88.0",
+    "request-promise": "^4.2.0",
+    "parse-link-header": "^1.0.1"
+  }
+}

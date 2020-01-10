@@ -13,9 +13,18 @@ var configJson = {
  * Main REST method.
  */
 app.get('/', (req, res) => {
-  var jsonResponse = ghsync(configJson);
-  res.set('Content-Type', 'application/json');
-  res.send(JSON.stringify(jsonResponse));
+  const promise = ghsync(configJson);
+  promise
+    .then(function(response) {
+        res.set('Content-Type', 'application/json');
+        res.send(JSON.stringify(response));
+      })
+    .catch(function(response) {
+        console.log(JSON.stringify(response));
+        res.statusCode = 500;
+        res.set('Content-Type', 'application/json');
+        res.send(JSON.stringify({ 'error' : response}));
+      });
 });
  
 module.exports.app = app;

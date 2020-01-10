@@ -64,7 +64,7 @@ var sync = function(config) {
     var sourceIssuesUrl = [];
     getSourceIssues(sourceRepos, sourcesGlobalGithubPat, sourceIssuesUrl, sourceIssues, promisedResponses);
 
-    Promise
+    var finalPremise = Promise
       .all(promisedResponses)
       .then(function(values) {
         console.log("existing:" + existingIssues.length);
@@ -83,12 +83,15 @@ var sync = function(config) {
                             .sort((i1,i2) => i1.title < i2.title)
                             .map(issue => { return { title: issue.title, url: issue.url, state: issue.state } } ),
         }
+        console.log("Synchronization complete without errors");
         return jsonResponse;
       })
       .catch(function (err) {
         console.log("Error in promises: " + err);
-        throw err;
+        return "Error in promises: " + err;
       });
+
+      return finalPremise;
   }
 
 
@@ -156,7 +159,6 @@ async function getExistingIssues(targetRepo, githubPat, existingIssues) {
       }
 
       linkHeader = response.headers.link;
-      console.log(response.headers.link);
       if (linkHeader) {
         var parsed = parse(linkHeader);
         if (parsed.next) {
