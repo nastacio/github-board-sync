@@ -64,34 +64,37 @@ var sync = function(config) {
     var sourceIssuesUrl = [];
     getSourceIssues(sourceRepos, sourcesGlobalGithubPat, sourceIssuesUrl, sourceIssues, promisedResponses);
 
-    var finalPremise = Promise
+    var finalPromise = Promise
       .all(promisedResponses)
       .then(function(values) {
         console.log("existing:" + existingIssues.length);
         console.log("sourceIssues:" + sourceIssues.length);
         console.log("projectUrl:" + projectUrl);
 
-        patchExistingIssues(targetRepo, githubPat, existingIssues, sourceIssues);
-
-        createMissingIssues(targetRepo, githubPat, sourceIssues, existingIssues);
-
-        var jsonResponse = {
-          targetProjectUrl: projectUrl,
-          existingIssuesCount: existingIssues.length,
-          sourceIssuesCount: sourceIssues.length,
-          existingIssues: existingIssues
-                            .sort((i1,i2) => i1.title < i2.title)
-                            .map(issue => { return { title: issue.title, url: issue.url, state: issue.state } } ),
-        }
-        console.log("Synchronization complete without errors");
-        return jsonResponse;
+        var patchPremise = patchExistingIssues(targetRepo, githubPat, existingIssues, sourceIssues);
+        var createPremise = createMissingIssues(targetRepo, githubPat, sourceIssues, existingIssues);
+        var reconcilePromise = Promise
+          .all([patchPremise, createPremise])
+          .then(function(values) {
+            var jsonResponse = {
+              targetProjectUrl: projectUrl,
+              existingIssuesCount: existingIssues.length,
+              sourceIssuesCount: sourceIssues.length,
+              existingIssues: existingIssues
+                                .sort((i1,i2) => i1.title < i2.title)
+                                .map(issue => { return { title: issue.title, url: issue.url, state: issue.state } } ),
+            }
+            console.log("Synchronization complete without errors.");
+            return jsonResponse;
+          });
+          return reconcilePromise;
       })
       .catch(function (err) {
         console.log("Error in promises: " + err);
         return "Error in promises: " + err;
       });
 
-      return finalPremise;
+      return finalPromise;
   }
 
 
@@ -214,7 +217,6 @@ async function getSourceIssues(sourceRepos, sourcesGlobalGithubPat, sourceIssues
         for (var i = 0, length = keys.length; i < length; i++) {
           issue = body[keys[i]];
           if (!sourceIssuesUrl.includes(issue.url)) {
-            console.log(JSON.stringify(issue));
             sourceIssuesUrl.push(issue.url);
             var sourceIssue = {
               prefix: sourceRepo.prefix,

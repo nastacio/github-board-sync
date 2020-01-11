@@ -1,7 +1,14 @@
 {
   "name": "github-sync",
-  "version": "1.0.0",
+  "version": "1.0.1",
+  "description": "Simple Node.js Express application",
+  "license": "Apache-2.0",
   "main": "action.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/appsody/stacks.git",
+    "directory": "incubator/nodejs-express/templates/simple"
+  },
   "dependencies": {
     "request": "^2.88.0",
     "request-promise": "^4.2.0",
