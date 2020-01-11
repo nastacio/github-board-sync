@@ -71,10 +71,11 @@ var sync = function(config) {
         console.log("sourceIssues:" + sourceIssues.length);
         console.log("projectUrl:" + projectUrl);
 
-        var patchPremise = patchExistingIssues(targetRepo, githubPat, existingIssues, sourceIssues);
-        var createPremise = createMissingIssues(targetRepo, githubPat, sourceIssues, existingIssues);
+        var patchPromises = patchExistingIssues(targetRepo, githubPat, existingIssues, sourceIssues);
+        var createPromises = createMissingIssues(targetRepo, githubPat, sourceIssues, existingIssues);
+        var reconcilePromises = patchPromises.concat(createPromises);
         var reconcilePromise = Promise
-          .all([patchPremise, createPremise])
+          .all(reconcilePromises)
           .then(function(values) {
             var jsonResponse = {
               targetProjectUrl: projectUrl,
@@ -84,7 +85,7 @@ var sync = function(config) {
                                 .sort((i1,i2) => i1.title < i2.title)
                                 .map(issue => { return { title: issue.title, url: issue.url, state: issue.state } } ),
             }
-            console.log("Synchronization complete without errors.");
+            console.log("Synchronization of [" + reconcilePromises.length + "] items was complete without errors");
             return jsonResponse;
           });
           return reconcilePromise;
@@ -246,12 +247,16 @@ async function getSourceIssues(sourceRepos, sourcesGlobalGithubPat, sourceIssues
  * Compares the list of source issues with existing issues and creates the 
  * missing ones in the target repository.
  * 
+ * Returns an array with the promises of all requests.
+ * 
  * @param {string} targetRepo
  * @param {string} githubPat
  * @param {Object[]} sourceIssues 
  * @param {Object[]} existingIssues 
  */
 function createMissingIssues(targetRepo, githubPat, sourceIssues, existingIssues) {
+  var resultPromises = [];
+
   sourceIssues
     .forEach(sourceIssue => {
       var newTitlePrefix = getSourceIssuePrefix(sourceIssue);
@@ -273,16 +278,20 @@ function createMissingIssues(targetRepo, githubPat, sourceIssues, existingIssues
             "labels": [ GITHUB_REMOTE_LABEL ]
           }
         };
-        rp
+        var createPromise = rp
           .post(postIssueOptions)
+          .promise()
           .then(function (body) {
             console.log("Created issue: " + newTitle);
           })
           .catch(function (err) {
             console.log("Error creating ["+newTitle+"]: " + err);
           });
+        resultPromises.push(createPromise);
       }
     });
+
+  return resultPromises;
 }
 
 
@@ -290,12 +299,16 @@ function createMissingIssues(targetRepo, githubPat, sourceIssues, existingIssues
  * Compares the list of source issues with existing issues and patches the 
  * existing ones if the corresponding source issue has changed.
  * 
+ * Returns an array with the promises of all requests.
+ * 
  * @param {string} targetRepo
  * @param {string} githubPat
  * @param {Object[]} existingIssues 
  * @param {Object[]} sourceIssues 
  */
 function patchExistingIssues(targetRepo, githubPat, existingIssues, sourceIssues) {
+  var resultPromises = [];
+
   existingIssues
     .forEach(existingIssue => {
       var existingTitlePrefix = existingIssue.title.substring(0, existingIssue.title.indexOf(']') + 1);
@@ -326,17 +339,20 @@ function patchExistingIssues(targetRepo, githubPat, existingIssues, sourceIssues
                 "state": newState
               }
             };
-            rp
+            var patchPromise = rp
               .patch(patchIssueOptions)
+              .promise()
               .then(function (body) {
                 console.log("Patched issue: " + getIssueTitle(sourceIssue));
               })
               .catch(function (err) {
                 console.log("Error patching [" + getIssueTitle(sourceIssue) +"]: " + err);
-              });          
+              });   
+            resultPromises.push(patchPromise);
           }
         });
     });
+  return resultPromises;
 }
 
 

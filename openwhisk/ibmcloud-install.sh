@@ -23,8 +23,29 @@ ibmcloud fn trigger create ${trigger_name} --param-file ${config_file} --feed /w
 ibmcloud fn rule get ${rule_name} && ibmcloud fn rule delete ${rule_name}
 ibmcloud fn rule create ${rule_name} ${trigger_name} ${action_name}
 
+pre_fire_milliseconds=$(date +%s)000
 ibmcloud fn trigger fire ${trigger_name}
-ibmcloud fn activation list ${action_name} -l 1 
 
-activation_id=$(ibmcloud fn activation list ${action_name} -l 1  | grep ${action_name} | cut -d " " -f 3)
-ibmcloud fn activation logs ${activation_id}
+wait_count=4
+activation_id=""
+set +x
+while [ "${activation_id}" == "" ] && [ ${wait_count} -gt 0 ]
+do
+    activation_id=$(ibmcloud fn activation list ${action_name} -l 1  --since ${pre_fire_milliseconds} | grep ${action_name} | cut -d " " -f 3)
+    if [ "${activation_id}" == "" ]; then
+        wait_count=$(expr ${wait_count} - 1)
+        echo "wait for trigger to fire...${wait_count} more tries"
+        sleep 2
+    fi
+done
+set -x
+
+ if [ "${activation_id}" == "" ]; then
+    echo "Function was not executed"
+    echo "ibmcloud fn activation list ${action_name} -l 1  --since ${pre_fire_milliseconds}"
+    ibmcloud fn activation list ${action_name} -l 1  --since ${pre_fire_milliseconds}
+ else
+    ibmcloud fn activation list ${action_name} -l 1 --since ${pre_fire_milliseconds}
+    activation_id=$(ibmcloud fn activation list ${action_name} -l 1  | grep ${action_name} | cut -d " " -f 3)
+    ibmcloud fn activation logs ${activation_id}
+fi
