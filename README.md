@@ -59,18 +59,7 @@ This project shows the results of running the reconciliation:
 https://github.com/nastacio/github-board-sync-test/issues
 
 
-# Running the app with OpenWhisk
+# Setting up function with OpenWhisk (Cloud Functions)
 
-```
-rm action.zip
-zip action.zip github-sync.js
-cd openwhisk
-rm -rf node_modules
-npm install
-zip -rq ../action.zip *
-cd -
-
-config_file=~/etc/github-sync-test.env
-ibmcloud fn action update github-sync-test action.zip --kind nodejs:default --param-file ${config_file}
-ibmcloud fn action invoke github-sync-test --param-file ${config_file} -r
-```
+See `openwhisk/ibmcloud-install.sh`.
+I need to generalize for usage with plain `wsk` CLI.
