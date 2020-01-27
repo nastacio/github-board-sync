@@ -275,7 +275,8 @@ function createMissingIssues(targetRepo, githubPat, sourceIssues, existingIssues
           body: {
             "title": newTitle,
             "body": createNewIssueBody(sourceIssue.issue),
-            "labels": [ GITHUB_REMOTE_LABEL ]
+            "labels": [ GITHUB_REMOTE_LABEL ],
+            "state": sourceIssue.issue.state
           }
         };
         var createPromise = rp

@@ -106,3 +106,5 @@ app-deploy.yaml
 openwhisk/tmp/package-lock.json
 openwhisk/tmp/action.zip
 openwhisk/tmp/package.json
+
+tmp
