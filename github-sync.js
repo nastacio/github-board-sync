@@ -29,8 +29,11 @@ var sync = function(config) {
     var existingIssuePromise = getExistingIssues(initialTargetRepo, githubPat, existingIssues);
     promisedResponses.push(existingIssuePromise);
 
-    var getLabelPromise = createLabelIfNeeded(targetRepo, githubPat);
-    promisedResponses.push(getLabelPromise);
+    var createLabelPromise = createLabelIfNeeded(targetRepo, githubPat, GITHUB_REMOTE_LABEL, "Aggregated issue from remote repository", "ffff33");
+    promisedResponses.push(createLabelPromise);
+
+    var createLabelsPromise = createLabelsIfNeeded(targetRepo, githubPat, sourceRepos);
+    promisedResponses.push(createLabelsPromise);
 
     var projectUrl = null;
     var listProjectsOptions = {
@@ -105,7 +108,7 @@ var sync = function(config) {
  * @param {Object} sourceIssue a GitHub issue, according to https://developer.github.com/v3/issues/
  */
 function createNewIssueBody(sourceIssue) {
-  return "Aggregated from: " + sourceIssue.url + "\n\nDescription in source issue:\n\n" + sourceIssue.body;
+  return "Aggregated from: " + sourceIssue.html_url + "\n\nDescription in source issue:\n\n" + sourceIssue.body;
 }
 
 /**
@@ -115,6 +118,16 @@ function createNewIssueBody(sourceIssue) {
  */
 function getSourceIssuePrefix(sourceIssue) {
   return "[" + sourceIssue.prefix + " - " + sourceIssue.issue.number + "]";
+}
+
+
+/**
+ * First part of the title for an issue in the target repo.
+ * 
+ * @param {Object} sourceIssue a GitHub issue, according to https://developer.github.com/v3/issues/
+ */
+function getSourceIssueLabelsOnTarget(sourceIssue) {
+  return sourceIssue.labels_on_target;
 }
 
 
@@ -221,6 +234,7 @@ async function getSourceIssues(sourceRepos, sourcesGlobalGithubPat, sourceIssues
             sourceIssuesUrl.push(issue.url);
             var sourceIssue = {
               prefix: sourceRepo.prefix,
+              labels_on_target: sourceRepo.labels_on_target,
               issue: issue
             }
             sourceIssues.push(sourceIssue);
@@ -262,7 +276,10 @@ function createMissingIssues(targetRepo, githubPat, sourceIssues, existingIssues
       var newTitlePrefix = getSourceIssuePrefix(sourceIssue);
       if (existingIssues.filter(function (v) { return v.title.includes(newTitlePrefix); }).length === 0) {
         var newTitle = getIssueTitle(sourceIssue);
-        console.log("Create missing issue:" + newTitle);
+        var labelsOnTarget = getSourceIssueLabelsOnTarget(sourceIssue);
+        var allLabelsOnTarget = [ GITHUB_REMOTE_LABEL ];
+        allLabelsOnTarget = allLabelsOnTarget.concat(labelsOnTarget)
+        console.log("Create missing issue:" + newTitle + " with labels: " + allLabelsOnTarget);
         var postIssueOptions = {
           uri: targetRepo + '/issues',
           json: true,
@@ -275,7 +292,7 @@ function createMissingIssues(targetRepo, githubPat, sourceIssues, existingIssues
           body: {
             "title": newTitle,
             "body": createNewIssueBody(sourceIssue.issue),
-            "labels": [ GITHUB_REMOTE_LABEL ],
+            "labels": allLabelsOnTarget,
             "state": sourceIssue.issue.state
           }
         };
@@ -283,7 +300,8 @@ function createMissingIssues(targetRepo, githubPat, sourceIssues, existingIssues
           .post(postIssueOptions)
           .promise()
           .then(function (body) {
-            console.log("Created issue: " + newTitle);
+            console.log("Created issue: " + newTitle + " : " + body.number);
+            return assignOwnersIfPossible(targetRepo, githubPat, body.number, sourceIssue.issue.assignees)
           })
           .catch(function (err) {
             console.log("Error creating ["+newTitle+"]: " + err);
@@ -359,12 +377,114 @@ function patchExistingIssues(targetRepo, githubPat, existingIssues, sourceIssues
 
 /**
  * 
+ * @param {*} targetRepo 
+ * @param {*} githubPat 
+ * @param {*} issueNumber 
+ * @param {*} assignees 
+ */
+async function assignOwnersIfPossible(targetRepo, githubPat, issueNumber, assignees) {
+  var resultPromises = [];
+
+  assignees
+    .forEach(assignee => {
+      var targetUri = targetRepo + '/assignees/' + assignee.login
+      var assigneeOptions = {
+        uri: targetUri,
+        method: 'GET',
+        json: true,
+        headers: {
+          'User-Agent': GITHUB_USER_AGENT,
+          'Accept': 'application/json',
+          'Content-Type': GITHUB_CONTENT_TYPE_HEADER,
+          'Authorization': 'token ' + githubPat
+        }
+      };
+      var assigneePromise = rp
+        .get(assigneeOptions)
+        .promise()
+        .then(function (body) {
+          return assignOwner(targetRepo, githubPat, issueNumber, assignee.login) 
+        })
+        .catch(function (err) {
+          console.log("Error getting assignee status for " + assignee + " at " + targetUri);
+        });   
+      resultPromises.push(assigneePromise);
+    });
+
+  return resultPromises;
+}
+
+
+/**
+ * 
+ * @param {*} targetRepo 
+ * @param {*} githubPat 
+ * @param {*} issueNumber 
+ * @param {*} assignee
+ */
+async function assignOwner(targetRepo, githubPat, issueNumber, assignee) {
+  var resultPromises = [];
+
+  var targetUri = targetRepo + '/issues/' + issueNumber + '/assignees'
+  var assigneeOptions = {
+    uri: targetUri,
+    method: 'POST',
+    json: true,
+    headers: {
+      'User-Agent': GITHUB_USER_AGENT,
+      'Accept': 'application/json',
+      'Content-Type': GITHUB_CONTENT_TYPE_HEADER,
+      'Authorization': 'token ' + githubPat
+    },
+    body: {
+      "assignees": [assignee]
+    }
+  };
+  var assigneePromise = rp
+    .post(assigneeOptions)
+    .promise()
+    .then(function (body) {
+      console.log("Assigned " + assignee + " to issue " + issueNumber);
+    })
+    .catch(function (err) {
+      console.log("Error assigning " + assignee + " to issue " + issueNumber);
+    });   
+  resultPromises.push(assigneePromise);
+
+  return resultPromises;
+}
+
+
+/**
+ * 
  * @param {string} targetRepo 
  * @param {string} githubPat 
+ * @param {string} sourceRepos configuration information for all source repositories
  */
-function createLabelIfNeeded(targetRepo, githubPat) {
+async function createLabelsIfNeeded(targetRepo, githubPat, sourceRepos) {
+  sourceRepos.forEach(sourceRepo => {
+    sourceRepo.urls.forEach(sourceUrl => {
+      var labels = sourceRepo.labels_on_target
+      if (labels != null) {
+        labels.forEach(label => {
+          createLabelIfNeeded(targetRepo, githubPat, label, "<This label needs a description>", label.toRGB())
+        });
+      }
+    });
+  });
+}
+
+
+/**
+ * 
+ * @param {string} targetRepo 
+ * @param {string} githubPat 
+ * @param {string} label new label to be created
+ * @param {string} color RGB color index
+ */
+function createLabelIfNeeded(targetRepo, githubPat, label, labelDescription, color) {
   var getLabelOptions = {
-    url: targetRepo + '/labels/' + GITHUB_REMOTE_LABEL,
+    url: targetRepo + '/labels/' + label,
     json: true,
     resolveWithFullResponse: true,
     simple: false,
@@ -388,16 +508,16 @@ function createLabelIfNeeded(targetRepo, githubPat) {
             'Authorization': 'token ' + githubPat
           },
           body: {
-            "name": GITHUB_REMOTE_LABEL,
-            "description": "Aggregated issue from remote repository",
-            "color": "ffff33"
+            "name": label,
+            "description": labelDescription,
+            "color": color
           }
         };
-        var createLabelPromise = rp
+      var createLabelPromise = rp
           .post(createLabelOptions)
           .promise()
           .then(function (body) {
-            console.log("Created label in target repository: " + GITHUB_REMOTE_LABEL + "-" + JSON.stringify(body));
+            console.log("Created label in target repository: " + label + "-" + JSON.stringify(body));
           });
         return createLabelPromise;
       } else {
@@ -405,6 +525,21 @@ function createLabelIfNeeded(targetRepo, githubPat) {
       }
     });
   return getLabelPromise;
+}
+
+/**
+ * 
+ */
+String.prototype.toRGB = function() {
+  var hash = 0;
+  if (this.length === 0) return hash;
+  for (var i = 0; i < this.length; i++) {
+      hash = this.charCodeAt(i) + ((hash << 5) - hash);
+      hash = hash & hash;
+  }
+  var randomColor = Math.floor(hash).toString(16);
+  randomColor = randomColor.substr(randomColor.length - 6);
+  return randomColor;
 }
 
 module.exports = sync;

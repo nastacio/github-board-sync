@@ -26,7 +26,12 @@ The configuration file is a properties file with keys and values, matching the t
       { 
         "prefix": "Some short string that will be used in the title of the target issue",
         "github_pat": "<GitHub Personal Access Token for the URLS in the "urls" element.>",
-        "urls": [ "<github_v3_api for the source issues>", "<github_v3_api for the source issues>" ] 
+sinc'synchron        "urls": ["<github_v3_api for the source issues>", ...],
+        "labels_on_target": [
+          "<label1>",
+          ...
+          "<labelN>",
+        ]
       }
   ]
 ```
@@ -34,12 +39,21 @@ The configuration file is a properties file with keys and values, matching the t
 
 ## Example:
 
-```
-target_repo=https://api.github.com/repos/nastacio/github-board-sync-test
-
-github_pat=...
-
-source_repos=[ { "prefix": "appsody stack", "urls": ["https://api.github.com/repos/appsody/stacks/issues?labels=enhancement"] }, { "prefix": "my codewind", "urls": ["https://api.github.com/repos/eclipse/codewind/issues?labels=tech-topic"] }]
+```json
+{ 
+  "github_pat": "...",
+  "target_repo": "https://api.github.com/repos/nastacio/github-board-sync-test",
+  "source_repos": [ 
+    { "prefix": "DN",
+      "urls": ["https://api.github.com/repos/nastacio/github-board-sync/issues?assignee=nastacio&state=all"],
+      "github_pat": "...",
+      "labels_on_target": [
+         "kind/label1",
+         "kind/label2"
+      ]
+    }
+  ]
+}
 ```
 
 # Running the app with Appsody
@@ -47,9 +61,9 @@ source_repos=[ { "prefix": "appsody stack", "urls": ["https://api.github.com/rep
 1. Install [Appsody](https://appsody.dev)
 1. Create a configuration file following the example above, replacing the values with the values matching your GitHub accounts.
     ```
-    config_file=<configuration file following the example in this readme>
+    config_contents=$(cat ${your_config_file} | tr -d "\n" | tr -d " ")
 
-    appsody run --docker-options="--env-file=${config_file}"
+    appsody run --docker-options="-e config=${config_contents}"
     ```
 1. Trigger a reconciliation run, by accessing the application at https://localhost:3000/
 
@@ -61,5 +75,4 @@ https://github.com/nastacio/github-board-sync-test/issues
 
 # Setting up function with OpenWhisk (Cloud Functions)
 
-See `openwhisk/ibmcloud-install.sh`.
-I need to generalize for usage with plain `wsk` CLI.
+See `openwhisk/ibmcloud-install.sh`

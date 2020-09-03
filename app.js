@@ -1,7 +1,8 @@
 const app = require('express')();
 const ghsync = require('./github-sync.js');
 
-var config                 = JSON.parse(process.env.config);
+var port = 3000
+var config = JSON.parse(process.env.config);
 var configJson = {
   github_pat: config.github_pat,
   sources_global_github_pat : ("sources_global_github_pat" in config) ? config.sources_global_github_pat : config.github_pat,
@@ -26,5 +27,10 @@ app.get('/', (req, res) => {
         res.send(JSON.stringify({ 'error' : response}));
       });
 });
- 
+
+// Comment out if not using appsody to run it
+// app.listen(port, () => {
+//   console.log(`Example app listening at http://localhost:${port}`)
+// })
+
 module.exports.app = app;
