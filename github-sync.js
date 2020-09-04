@@ -301,7 +301,13 @@ function createMissingIssues(targetRepo, githubPat, sourceIssues, existingIssues
           .promise()
           .then(function (body) {
             console.log("Created issue: " + newTitle + " : " + body.number);
-            return assignOwnersIfPossible(targetRepo, githubPat, body.number, sourceIssue.issue.assignees)
+            var assignPromises = assignOwnersIfPossible(targetRepo, githubPat, body.number, sourceIssue.issue.assignees)
+            var assignAllPromises = Promise
+              .all(assignPromises)
+              .then(() => {
+                console.log("Assigned all owners for new issue " + body.number)
+              })
+            return assignAllPromises;
           })
           .catch(function (err) {
             console.log("Error creating ["+newTitle+"]: " + err);
