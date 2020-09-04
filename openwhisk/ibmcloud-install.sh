@@ -3,7 +3,7 @@
 original_dir=$PWD
 
 set -e
-set -x
+set +x
 
 #
 # Execution parameters

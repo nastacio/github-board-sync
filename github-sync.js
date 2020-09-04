@@ -230,7 +230,7 @@ async function getSourceIssues(sourceRepos, sourcesGlobalGithubPat, sourceIssues
         var keys = Object.keys(body);
         for (var i = 0, length = keys.length; i < length; i++) {
           issue = body[keys[i]];
-          if (!sourceIssuesUrl.includes(issue.url)) {
+          if (!issue.html_url.includes('/pull/') && !sourceIssuesUrl.includes(issue.url)) {
             sourceIssuesUrl.push(issue.url);
             var sourceIssue = {
               prefix: sourceRepo.prefix,
