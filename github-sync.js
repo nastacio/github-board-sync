@@ -91,7 +91,7 @@ var sync = function(config) {
             console.log("Synchronization of [" + reconcilePromises.length + "] items was complete without errors");
             return jsonResponse;
           });
-          return reconcilePromise;
+        return reconcilePromise;
       })
       .catch(function (err) {
         console.log("Error in promises: " + err);
@@ -363,11 +363,26 @@ function patchExistingIssues(targetRepo, githubPat, existingIssues, sourceIssues
               .promise()
               .then(function (body) {
                 console.log("Patched issue: " + getIssueTitle(sourceIssue));
+                var assignPromises = assignOwnersIfPossible(targetRepo, githubPat, existingIssue.number, sourceIssue.issue.assignees)
+                var assignAllPromises = Promise
+                  .all(assignPromises)
+                  .then(() => {
+                    console.log("Assigned all owners for changed issue " + existingIssue.number)
+                  })
+                return assignAllPromises;
               })
               .catch(function (err) {
                 console.log("Error patching [" + getIssueTitle(sourceIssue) +"]: " + err);
               });   
             resultPromises.push(patchPromise);
+          } else {
+            var assignPromises = assignOwnersIfPossible(targetRepo, githubPat, existingIssue.number, sourceIssue.issue.assignees)
+            var assignAllPromises = Promise
+              .all(assignPromises)
+              .then(() => {
+                console.log("Assigned all owners for unchanged issue " + existingIssue.number)
+                })
+            resultPromises.push(assignAllPromises)
           }
         });
     });
@@ -382,7 +397,7 @@ function patchExistingIssues(targetRepo, githubPat, existingIssues, sourceIssues
  * @param {*} issueNumber 
  * @param {*} assignees 
  */
-async function assignOwnersIfPossible(targetRepo, githubPat, issueNumber, assignees) {
+function assignOwnersIfPossible(targetRepo, githubPat, issueNumber, assignees) {
   var resultPromises = [];
 
   assignees
@@ -422,9 +437,7 @@ async function assignOwnersIfPossible(targetRepo, githubPat, issueNumber, assign
  * @param {*} issueNumber 
  * @param {*} assignee
  */
-async function assignOwner(targetRepo, githubPat, issueNumber, assignee) {
-  var resultPromises = [];
-
+function assignOwner(targetRepo, githubPat, issueNumber, assignee) {
   var targetUri = targetRepo + '/issues/' + issueNumber + '/assignees'
   var assigneeOptions = {
     uri: targetUri,
@@ -449,9 +462,8 @@ async function assignOwner(targetRepo, githubPat, issueNumber, assignee) {
     .catch(function (err) {
       console.log("Error assigning " + assignee + " to issue " + issueNumber);
     });   
-  resultPromises.push(assigneePromise);
 
-  return resultPromises;
+  return assigneePromise;
 }
 
 
