@@ -10,7 +10,6 @@
     "directory": "incubator/nodejs-express/templates/simple"
   },
   "dependencies": {
-    "request": "^2.88.0",
     "request-promise": "^4.2.0",
     "parse-link-header": "^1.0.1"
   }
