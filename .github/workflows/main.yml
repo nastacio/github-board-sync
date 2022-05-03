@@ -1,9 +1,9 @@
-name: Appsody-Actions CI
+name: Actions CI
 
 on:
   push:
     branches:
-    - master
+    - main
 
 jobs:
   build:
