@@ -1,9 +1,8 @@
-name: Actions CI
+name: Build
 
 on:
-  push:
-    branches:
-    - main
+  pull_request:
+    branches: [main]
 
 jobs:
   build:
