@@ -1,2 +1,0 @@
-project-name: github-board-sync
-stack: docker.io/appsody/nodejs-express:0.3

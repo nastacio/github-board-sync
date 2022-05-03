@@ -56,16 +56,19 @@ The configuration file is a properties file with keys and values, matching the t
 }
 ```
 
-# Running the app with Appsody
+# Running the app
 
-1. Install [Appsody](https://appsody.dev)
 1. Create a configuration file following the example above, replacing the values with the values matching your GitHub accounts.
+    ```sh
+    config_contents=$(cat "${your_config_file}" | tr -d "\n" | tr -d " ")
+1. Build the container image:
+    ```sh
+    docker build . -t github-sync-app
     ```
-    config_contents=$(cat ${your_config_file} | tr -d "\n" | tr -d " ")
-
-    appsody run --docker-options="-e config=${config_contents}"
+1. Trigger a reconciliation run:
+    ```sh
+    docker run --rm -it -e config=${config_contents} github-sync-app
     ```
-1. Trigger a reconciliation run, by accessing the application at https://localhost:3000/
 
 ## Example of completion
 
@@ -73,6 +76,16 @@ This project shows the results of running the reconciliation:
 https://github.com/nastacio/github-board-sync-test/issues
 
 
-# Setting up function with OpenWhisk (Cloud Functions)
+# Setting up invocations with IBM Code Engine
 
-See `openwhisk/ibmcloud-install.sh`
+See `iaas/code-engine/ibmcloud-install.sh`
+
+Example: 
+
+```sh
+./iaas/code-engine/ibmcloud-install.sh 
+    --setup \
+    --project sdlc-prod \
+    --config path/github-sync-test.json \
+    --schedule "0 * * * *"
+```
