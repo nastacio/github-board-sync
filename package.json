@@ -1,6 +1,6 @@
 {
-  "name": "nodejs-express-simple",
-  "version": "0.1.0",
+  "name": "github-sync",
+  "version": "0.2.0",
   "description": "Simple Node.js Express application",
   "license": "Apache-2.0",
   "main": "app.js",
@@ -14,10 +14,10 @@
   },
   "devDependencies": {
     "chai": "^4.2.0",
-    "mocha": "~6.1.0",
+    "mocha": "^10.0.0",
+    "parse-link-header": "^2.0.0",
     "request": "^2.88.0",
-    "request-promise": "^4.2.0",
-    "parse-link-header": "^2.0.0"
+    "request-promise": "^4.2.0"
   },
   "dependencies": {
     "express": "^4.17.1"
