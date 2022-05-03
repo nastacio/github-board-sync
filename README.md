@@ -60,7 +60,7 @@ The configuration file is a properties file with keys and values, matching the t
 
 1. Create a configuration file following the example above, replacing the values with the values matching your GitHub accounts.
     ```sh
-    config_contents=$(cat "${your_config_file}" | tr -d "\n" | tr -d " ")
+    config_contents=$(cat "${your_config_file}" | tr -d "\n")
 1. Build the container image:
     ```sh
     docker build . -t github-sync-app
