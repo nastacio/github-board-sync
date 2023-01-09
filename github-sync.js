@@ -222,30 +222,36 @@ async function getSourceIssues(sourceRepos, sourcesGlobalGithubPat, sourceIssues
         'Authorization': 'token ' + effectiveGithubPat
       }
     }
+    console.log("INFO: Getting issues from " + sourceUrl)
     var getSourceIssuesPromise = rp
       .get(getOptions)
       .promise()
       .then(function (response) {
-        var body = response.body
-        var keys = Object.keys(body)
-        for (var i = 0, length = keys.length; i < length; i++) {
-          issue = body[keys[i]]
-          if (!issue.html_url.includes('/pull/') && !sourceIssuesUrl.includes(issue.url)) {
-            sourceIssuesUrl.push(issue.url)
-            var sourceIssue = {
-              prefix: sourceRepo.prefix,
-              labels_on_target: sourceRepo.labels_on_target,
-              issue: issue
+        if (response.statusCode != 200) {
+          console.log("ERROR: Unable to retrieve issues from " + sourceUrl)
+        } else {
+          console.log("INFO: Response from " + sourceUrl + ": " + response.statusCode)
+          var body = response.body
+          var keys = Object.keys(body)
+          for (var i = 0, length = keys.length; i < length; i++) {
+            issue = body[keys[i]]
+            if (!issue.html_url.includes('/pull/') && !sourceIssuesUrl.includes(issue.url)) {
+              sourceIssuesUrl.push(issue.url)
+              var sourceIssue = {
+                prefix: sourceRepo.prefix,
+                labels_on_target: sourceRepo.labels_on_target,
+                issue: issue
+              }
+              sourceIssues.push(sourceIssue)
             }
-            sourceIssues.push(sourceIssue)
           }
-        }
-        linkHeader = response.headers.link
-        if (linkHeader) {
-          var parsed = parse(linkHeader)
-          if (parsed.next) {
-            console.log("INFO: Next source issues page: " + parsed.next.url)
-            return getSourceIssuesInternal(parsed.next.url, effectiveGithubPat, sourceRepo)
+          linkHeader = response.headers.link
+          if (linkHeader) {
+            var parsed = parse(linkHeader)
+            if (parsed.next) {
+              console.log("INFO: Next source issues page: " + parsed.next.url)
+              return getSourceIssuesInternal(parsed.next.url, effectiveGithubPat, sourceRepo)
+            }
           }
         }
       })
