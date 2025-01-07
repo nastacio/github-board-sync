@@ -6,7 +6,7 @@
   "main": "app.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/appsody/stacks.git",
+    "url": "https://github.com/nastacio/github-board-sync.git",
     "directory": "incubator/nodejs-express/templates/simple"
   },
   "scripts": {
